@@ -53,7 +53,7 @@ class BookViewSet(viewsets.ModelViewSet):
                 )
 
             book.count = F("count") - 1
-
+            book.save()
             book.refresh_from_db()
 
             return Response({"message": "Book purchased", "count": book.count})
