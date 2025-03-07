@@ -42,6 +42,11 @@ class BookViewSet(viewsets.ModelViewSet):
     def buy(self, request, pk=None) -> Response:
         """
         Покупка книги
+
+        Транзакция блокируется для защиты от множественных запросов.
+        Создается SQL-выражение для уменьшения count на 1.
+        Выполняется SQL-запрос, чтобы применить это выражение в БД.
+        Обновляется объект book из БД, чтобы получить актуальное значение count.
         """
 
         with transaction.atomic():
