@@ -1,9 +1,11 @@
+from django.db import transaction
 from django.db.models import QuerySet
 from rest_framework import viewsets, status
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from .models import Author, Book
 from .serializers import AuthorSerializer, BookSerializer
+from django.db.models import F
 
 
 class AuthorViewSet(viewsets.ModelViewSet):
@@ -42,14 +44,16 @@ class BookViewSet(viewsets.ModelViewSet):
         Покупка книги
         """
 
-        book = self.get_object()
+        with transaction.atomic():
+            book = Book.objects.select_for_update().get(pk=pk)
 
-        if book.count <= 0:
-            return Response(
-                {"error": "Book out of stock"}, status=status.HTTP_400_BAD_REQUEST
-            )
+            if book.count <= 0:
+                return Response(
+                    {"error": "Book out of stock"}, status=status.HTTP_400_BAD_REQUEST
+                )
 
-        book.count -= 1
-        book.save()
+            book.count = F("count") - 1
 
-        return Response({"message": "Book purchased", "count": book.count})
+            book.refresh_from_db()
+
+            return Response({"message": "Book purchased", "count": book.count})
